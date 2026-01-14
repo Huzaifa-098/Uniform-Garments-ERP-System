@@ -1,0 +1,2642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Dashboard - Uniform Garments</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a252f 0%, #2c3e50 50%, #3498db 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .notification-icon {
+            position: relative;
+            cursor: pointer;
+            font-size: 22px;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .notification-icon:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
+            border: 2px solid white;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            width: 380px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            max-height: 500px;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+        }
+
+        .notification-dropdown.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-dropdown-header {
+            padding: 20px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .notification-dropdown-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .notification-dropdown-body {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .notification-dropdown-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            gap: 15px;
+            align-items: start;
+        }
+
+        .notification-dropdown-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notification-dropdown-item.unread {
+            background: #f0f8ff;
+            border-left: 4px solid #3498db;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+            height: calc(100vh - 70px);
+            position: fixed;
+            left: 0;
+            top: 70px;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.08);
+            overflow-y: auto;
+            padding: 20px 0;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .menu-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #555;
+            margin: 2px 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .menu-item:hover {
+            background: linear-gradient(90deg, #e8f4f8 0%, #f0f8ff 100%);
+            color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .menu-item.active {
+            background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .menu-item-icon {
+            font-size: 18px;
+            width: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 30px 40px;
+            min-height: calc(100vh - 70px);
+        }
+
+        .main-content h2 {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+            display: inline-block;
+        }
+
+        /* Dashboard Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-info h3 {
+            color: #7f8c8d;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .stat-info h2 {
+            color: #2c3e50;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .stat-icon.blue { background: #e3f2fd; color: #2196f3; }
+        .stat-icon.green { background: #e8f5e9; color: #4caf50; }
+        .stat-icon.orange { background: #fff3e0; color: #ff9800; }
+        .stat-icon.purple { background: #f3e5f5; color: #9c27b0; }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .chart-card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .chart-placeholder {
+            height: 300px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        /* Tables */
+        .table-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-header h3 {
+            color: #2c3e50;
+            font-size: 18px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            padding: 18px 15px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #3498db 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        th:first-child {
+            border-top-left-radius: 12px;
+        }
+
+        th:last-child {
+            border-top-right-radius: 12px;
+        }
+
+        tbody tr {
+            transition: all 0.3s ease;
+            background: white;
+            position: relative;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        tbody tr:hover {
+            background: linear-gradient(90deg, #e8f4f8 0%, #f0f8ff 100%);
+            transform: translateX(5px);
+            box-shadow: -5px 0 15px rgba(52, 152, 219, 0.2);
+        }
+
+        tbody tr:hover td {
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 12px;
+        }
+
+        tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 12px;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        td {
+            color: #555;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+
+        /* Branch Cards */
+        .branches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .branch-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .branch-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .branch-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .branch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .branch-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .branch-location {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .branch-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .branch-stat {
+            text-align: center;
+        }
+
+        .branch-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #3498db;
+        }
+
+        .branch-stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        /* Inventory Items */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .inventory-item {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-left: 5px solid #3498db;
+            transition: all 0.3s ease;
+        }
+
+        .inventory-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+
+        .inventory-item.low-stock {
+            border-left-color: #e74c3c;
+        }
+
+        .inventory-item-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .inventory-item-stock {
+            font-size: 24px;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .inventory-item-branches {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        /* Notifications */
+        .notifications-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            gap: 15px;
+            align-items: start;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-icon-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .notification-icon-small.alert { background: #fff3e0; color: #ff9800; }
+        .notification-icon-small.info { background: #e3f2fd; color: #2196f3; }
+        .notification-icon-small.success { background: #e8f5e9; color: #4caf50; }
+
+        .notification-content h4 {
+            font-size: 14px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .notification-content p {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .notification-time {
+            font-size: 11px;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+
+        /* Hidden sections */
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🏢 Uniform Garments ERP System</h1>
+            <div class="header-right">
+            <div class="notification-icon" onclick="toggleNotifications()">
+                🔔
+                <span class="notification-badge">5</span>
+            </div>
+            <!-- Notification Dropdown -->
+            <div class="notification-dropdown" id="notificationDropdown">
+                <div class="notification-dropdown-header">
+                    <h3>Notifications</h3>
+                    <button class="btn btn-primary" style="padding: 5px 12px; font-size: 12px;" onclick="markAllRead()">Mark All Read</button>
+                </div>
+                <div class="notification-dropdown-body">
+                    <div class="notification-dropdown-item unread">
+                        <div class="notification-icon-small alert">⚠️</div>
+                        <div class="notification-content">
+                            <h4>Low Stock Alert</h4>
+                            <p>School Shirt - Size M is running low (15 units)</p>
+                            <div class="notification-time">5 min ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-dropdown-item unread">
+                        <div class="notification-icon-small alert">⚠️</div>
+                        <div class="notification-content">
+                            <h4>Low Stock Alert</h4>
+                            <p>Formal Pants - Size 32 is below threshold</p>
+                            <div class="notification-time">15 min ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-dropdown-item">
+                        <div class="notification-icon-small info">ℹ️</div>
+                        <div class="notification-content">
+                            <h4>Daily Inventory Report</h4>
+                            <p>Daily inventory summary report generated</p>
+                            <div class="notification-time">1 hour ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-dropdown-item">
+                        <div class="notification-icon-small success">✅</div>
+                        <div class="notification-content">
+                            <h4>Stock Transfer Completed</h4>
+                            <p>Transfer #TRF-2024-001 completed successfully</p>
+                            <div class="notification-time">2 hours ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-dropdown-item">
+                        <div class="notification-icon-small info">📦</div>
+                        <div class="notification-content">
+                            <h4>Purchase Order Received</h4>
+                            <p>PO #PO-2024-003 received and inventory updated</p>
+                            <div class="notification-time">3 hours ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar">AM</div>
+                <div>
+                    <div style="font-weight: 600;">Admin Manager</div>
+                    <div style="font-size: 12px; opacity: 0.8;">Head Office</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="menu-item active" onclick="showSection('dashboard')">
+            <span class="menu-item-icon">📊</span>
+            <span>Dashboard</span>
+        </div>
+        <div class="menu-item" onclick="showSection('inventory')">
+            <span class="menu-item-icon">📦</span>
+            <span>Inventory Management</span>
+        </div>
+        <div class="menu-item" onclick="showSection('branches')">
+            <span class="menu-item-icon">🏪</span>
+            <span>Branch Management</span>
+        </div>
+        <div class="menu-item" onclick="showSection('sales')">
+            <span class="menu-item-icon">💰</span>
+            <span>Sales & POS</span>
+        </div>
+        <div class="menu-item" onclick="showSection('purchase')">
+            <span class="menu-item-icon">🛒</span>
+            <span>Purchase Management</span>
+        </div>
+        <div class="menu-item" onclick="showSection('reports')">
+            <span class="menu-item-icon">📈</span>
+            <span>Reports & Analytics</span>
+        </div>
+        <div class="menu-item" onclick="showSection('notifications')">
+            <span class="menu-item-icon">🔔</span>
+            <span>Notifications</span>
+        </div>
+        <div class="menu-item" onclick="showSection('stock-transfers')">
+            <span class="menu-item-icon">🚚</span>
+            <span>Stock Transfers</span>
+        </div>
+        <div class="menu-item" onclick="showSection('stock-adjustments')">
+            <span class="menu-item-icon">📝</span>
+            <span>Stock Adjustments</span>
+        </div>
+        <div class="menu-item" onclick="showSection('categories')">
+            <span class="menu-item-icon">📁</span>
+            <span>Category Management</span>
+        </div>
+        <div class="menu-item" onclick="showSection('audit-trail')">
+            <span class="menu-item-icon">📋</span>
+            <span>Audit Trail</span>
+        </div>
+        <div class="menu-item" onclick="showSection('settings')">
+            <span class="menu-item-icon">⚙️</span>
+            <span>Settings</span>
+        </div>
+        <div class="menu-item" onclick="showSection('users')">
+            <span class="menu-item-icon">👥</span>
+            <span>User Management</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="content-section active">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Dashboard Overview</h2>
+            
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Total Inventory Items</h3>
+                        <h2>247</h2>
+                    </div>
+                    <div class="stat-icon blue">📦</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Total Branches</h3>
+                        <h2>8</h2>
+                    </div>
+                    <div class="stat-icon green">🏪</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Today's Sales</h3>
+                        <h2>Rs. 1,24,500</h2>
+                    </div>
+                    <div class="stat-icon orange">💰</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Low Stock Alerts</h3>
+                        <h2>12</h2>
+                    </div>
+                    <div class="stat-icon purple">⚠️</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Sales Trend (Last 7 Days)</h3>
+                    <div class="chart-container">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Branch Performance</h3>
+                    <div class="chart-container">
+                        <canvas id="branchChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Sales -->
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Recent Sales Transactions</h3>
+                    <button class="btn btn-primary">View All</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Branch</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#TXN-2024-001</td>
+                            <td>Karachi Main</td>
+                            <td>3 items</td>
+                            <td>Rs. 4,500</td>
+                            <td>10:30 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN-2024-002</td>
+                            <td>Lahore Central</td>
+                            <td>5 items</td>
+                            <td>Rs. 7,200</td>
+                            <td>10:25 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN-2024-003</td>
+                            <td>Islamabad Branch</td>
+                            <td>2 items</td>
+                            <td>Rs. 3,800</td>
+                            <td>10:15 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN-2024-004</td>
+                            <td>Karachi Main</td>
+                            <td>4 items</td>
+                            <td>Rs. 5,600</td>
+                            <td>10:10 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN-2024-005</td>
+                            <td>Faisalabad Branch</td>
+                            <td>6 items</td>
+                            <td>Rs. 8,900</td>
+                            <td>10:05 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Low Stock Items -->
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Low Stock Alerts</h3>
+                    <button class="btn btn-primary">View All</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Current Stock</th>
+                            <th>Min Threshold</th>
+                            <th>Branches Affected</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>School Shirt - Size M</td>
+                            <td>Shirts</td>
+                            <td>15</td>
+                            <td>50</td>
+                            <td>3 branches</td>
+                            <td><span class="badge badge-danger">Critical</span></td>
+                        </tr>
+                        <tr>
+                            <td>Formal Pants - Size 32</td>
+                            <td>Pants</td>
+                            <td>22</td>
+                            <td>40</td>
+                            <td>2 branches</td>
+                            <td><span class="badge badge-warning">Low</span></td>
+                        </tr>
+                        <tr>
+                            <td>School Tie - Blue</td>
+                            <td>Accessories</td>
+                            <td>18</td>
+                            <td>30</td>
+                            <td>4 branches</td>
+                            <td><span class="badge badge-warning">Low</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inventory Management Section -->
+        <div id="inventory" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Inventory Management</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Total Items</h3>
+                        <h2>247</h2>
+                    </div>
+                    <div class="stat-icon blue">📦</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Total Stock Value</h3>
+                        <h2>Rs. 45.2L</h2>
+                    </div>
+                    <div class="stat-icon green">💰</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Categories</h3>
+                        <h2>12</h2>
+                    </div>
+                    <div class="stat-icon orange">📁</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Low Stock Items</h3>
+                        <h2>12</h2>
+                    </div>
+                    <div class="stat-icon purple">⚠️</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Inventory Items (200+ Items)</h3>
+                    <button class="btn btn-primary">Add New Item</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Total Stock</th>
+                            <th>Stock Value</th>
+                            <th>Branches</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>UG-SH-001</td>
+                            <td>School Shirt - Size S</td>
+                            <td>Shirts</td>
+                            <td>245</td>
+                            <td>Rs. 1,22,500</td>
+                            <td>8 branches</td>
+                            <td><span class="badge badge-success">In Stock</span></td>
+                        </tr>
+                        <tr>
+                            <td>UG-SH-002</td>
+                            <td>School Shirt - Size M</td>
+                            <td>Shirts</td>
+                            <td>15</td>
+                            <td>Rs. 7,500</td>
+                            <td>3 branches</td>
+                            <td><span class="badge badge-danger">Low Stock</span></td>
+                        </tr>
+                        <tr>
+                            <td>UG-SH-003</td>
+                            <td>School Shirt - Size L</td>
+                            <td>Shirts</td>
+                            <td>180</td>
+                            <td>Rs. 90,000</td>
+                            <td>7 branches</td>
+                            <td><span class="badge badge-success">In Stock</span></td>
+                        </tr>
+                        <tr>
+                            <td>UG-PT-001</td>
+                            <td>Formal Pants - Size 30</td>
+                            <td>Pants</td>
+                            <td>320</td>
+                            <td>Rs. 2,24,000</td>
+                            <td>8 branches</td>
+                            <td><span class="badge badge-success">In Stock</span></td>
+                        </tr>
+                        <tr>
+                            <td>UG-PT-002</td>
+                            <td>Formal Pants - Size 32</td>
+                            <td>Pants</td>
+                            <td>22</td>
+                            <td>Rs. 15,400</td>
+                            <td>2 branches</td>
+                            <td><span class="badge badge-warning">Low Stock</span></td>
+                        </tr>
+                        <tr>
+                            <td>UG-ACC-001</td>
+                            <td>School Tie - Blue</td>
+                            <td>Accessories</td>
+                            <td>18</td>
+                            <td>Rs. 3,600</td>
+                            <td>4 branches</td>
+                            <td><span class="badge badge-warning">Low Stock</span></td>
+                        </tr>
+                        <tr>
+                            <td>UG-ACC-002</td>
+                            <td>School Belt - Black</td>
+                            <td>Accessories</td>
+                            <td>156</td>
+                            <td>Rs. 31,200</td>
+                            <td>6 branches</td>
+                            <td><span class="badge badge-success">In Stock</span></td>
+                        </tr>
+                        <tr>
+                            <td>UG-SHO-001</td>
+                            <td>School Shoes - Size 7</td>
+                            <td>Shoes</td>
+                            <td>89</td>
+                            <td>Rs. 1,78,000</td>
+                            <td>5 branches</td>
+                            <td><span class="badge badge-success">In Stock</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="inventory-grid">
+                <div class="inventory-item low-stock">
+                    <div class="inventory-item-name">School Shirt - Size M</div>
+                    <div class="inventory-item-stock">15</div>
+                    <div class="inventory-item-branches">3 branches</div>
+                </div>
+                <div class="inventory-item">
+                    <div class="inventory-item-name">School Shirt - Size S</div>
+                    <div class="inventory-item-stock">245</div>
+                    <div class="inventory-item-branches">8 branches</div>
+                </div>
+                <div class="inventory-item">
+                    <div class="inventory-item-name">Formal Pants - Size 30</div>
+                    <div class="inventory-item-stock">320</div>
+                    <div class="inventory-item-branches">8 branches</div>
+                </div>
+                <div class="inventory-item low-stock">
+                    <div class="inventory-item-name">Formal Pants - Size 32</div>
+                    <div class="inventory-item-stock">22</div>
+                    <div class="inventory-item-branches">2 branches</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Branch Management Section -->
+        <div id="branches" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Branch Management (8 Branches)</h2>
+            
+            <div class="branches-grid">
+                <div class="branch-card">
+                    <div class="branch-header">
+                        <div class="branch-name">Karachi Main</div>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="branch-location">📍 Karachi, Sindh</div>
+                    <div class="branch-stats">
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">156</div>
+                            <div class="branch-stat-label">Items</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">Rs. 35K</div>
+                            <div class="branch-stat-label">Today Sales</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">12</div>
+                            <div class="branch-stat-label">Staff</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="branch-card">
+                    <div class="branch-header">
+                        <div class="branch-name">Lahore Central</div>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="branch-location">📍 Lahore, Punjab</div>
+                    <div class="branch-stats">
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">142</div>
+                            <div class="branch-stat-label">Items</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">Rs. 28K</div>
+                            <div class="branch-stat-label">Today Sales</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">10</div>
+                            <div class="branch-stat-label">Staff</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="branch-card">
+                    <div class="branch-header">
+                        <div class="branch-name">Islamabad Branch</div>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="branch-location">📍 Islamabad, Capital</div>
+                    <div class="branch-stats">
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">138</div>
+                            <div class="branch-stat-label">Items</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">Rs. 22K</div>
+                            <div class="branch-stat-label">Today Sales</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">8</div>
+                            <div class="branch-stat-label">Staff</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="branch-card">
+                    <div class="branch-header">
+                        <div class="branch-name">Faisalabad Branch</div>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="branch-location">📍 Faisalabad, Punjab</div>
+                    <div class="branch-stats">
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">125</div>
+                            <div class="branch-stat-label">Items</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">Rs. 18K</div>
+                            <div class="branch-stat-label">Today Sales</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">7</div>
+                            <div class="branch-stat-label">Staff</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="branch-card">
+                    <div class="branch-header">
+                        <div class="branch-name">Multan Branch</div>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="branch-location">📍 Multan, Punjab</div>
+                    <div class="branch-stats">
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">118</div>
+                            <div class="branch-stat-label">Items</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">Rs. 15K</div>
+                            <div class="branch-stat-label">Today Sales</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">6</div>
+                            <div class="branch-stat-label">Staff</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="branch-card">
+                    <div class="branch-header">
+                        <div class="branch-name">Rawalpindi Branch</div>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="branch-location">📍 Rawalpindi, Punjab</div>
+                    <div class="branch-stats">
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">132</div>
+                            <div class="branch-stat-label">Items</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">Rs. 20K</div>
+                            <div class="branch-stat-label">Today Sales</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">9</div>
+                            <div class="branch-stat-label">Staff</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="branch-card">
+                    <div class="branch-header">
+                        <div class="branch-name">Hyderabad Branch</div>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="branch-location">📍 Hyderabad, Sindh</div>
+                    <div class="branch-stats">
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">110</div>
+                            <div class="branch-stat-label">Items</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">Rs. 12K</div>
+                            <div class="branch-stat-label">Today Sales</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">5</div>
+                            <div class="branch-stat-label">Staff</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="branch-card">
+                    <div class="branch-header">
+                        <div class="branch-name">Quetta Branch</div>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="branch-location">📍 Quetta, Balochistan</div>
+                    <div class="branch-stats">
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">105</div>
+                            <div class="branch-stat-label">Items</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">Rs. 10K</div>
+                            <div class="branch-stat-label">Today Sales</div>
+                        </div>
+                        <div class="branch-stat">
+                            <div class="branch-stat-value">5</div>
+                            <div class="branch-stat-label">Staff</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Branch Stock Transfers</h3>
+                    <button class="btn btn-primary">New Transfer</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Transfer ID</th>
+                            <th>From Branch</th>
+                            <th>To Branch</th>
+                            <th>Items</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#TRF-2024-001</td>
+                            <td>Karachi Main</td>
+                            <td>Lahore Central</td>
+                            <td>School Shirt M (50 units)</td>
+                            <td>2024-01-15</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TRF-2024-002</td>
+                            <td>Islamabad Branch</td>
+                            <td>Rawalpindi Branch</td>
+                            <td>Formal Pants 32 (30 units)</td>
+                            <td>2024-01-14</td>
+                            <td><span class="badge badge-info">In Transit</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sales & POS Section -->
+        <div id="sales" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Sales & POS</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Today's Sales</h3>
+                        <h2>Rs. 1,24,500</h2>
+                    </div>
+                    <div class="stat-icon green">💰</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>This Week</h3>
+                        <h2>Rs. 7,85,200</h2>
+                    </div>
+                    <div class="stat-icon blue">📊</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>This Month</h3>
+                        <h2>Rs. 32,45,800</h2>
+                    </div>
+                    <div class="stat-icon orange">📈</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Transactions</h3>
+                        <h2>1,247</h2>
+                    </div>
+                    <div class="stat-icon purple">🛒</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Sales Transactions</h3>
+                    <button class="btn btn-primary">New Sale</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Branch</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Payment Method</th>
+                            <th>Date & Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#TXN-2024-001</td>
+                            <td>Karachi Main</td>
+                            <td>Walk-in Customer</td>
+                            <td>3 items</td>
+                            <td>Rs. 4,500</td>
+                            <td>Cash</td>
+                            <td>2024-01-15 10:30 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN-2024-002</td>
+                            <td>Lahore Central</td>
+                            <td>Ahmed Khan</td>
+                            <td>5 items</td>
+                            <td>Rs. 7,200</td>
+                            <td>Card</td>
+                            <td>2024-01-15 10:25 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN-2024-003</td>
+                            <td>Islamabad Branch</td>
+                            <td>Walk-in Customer</td>
+                            <td>2 items</td>
+                            <td>Rs. 3,800</td>
+                            <td>Cash</td>
+                            <td>2024-01-15 10:15 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN-2024-004</td>
+                            <td>Karachi Main</td>
+                            <td>Fatima Ali</td>
+                            <td>4 items</td>
+                            <td>Rs. 5,600</td>
+                            <td>Card</td>
+                            <td>2024-01-15 10:10 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>#TXN-2024-005</td>
+                            <td>Faisalabad Branch</td>
+                            <td>Walk-in Customer</td>
+                            <td>6 items</td>
+                            <td>Rs. 8,900</td>
+                            <td>Cash</td>
+                            <td>2024-01-15 10:05 AM</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="chart-card">
+                <h3>Top Selling Items</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Quantity Sold</th>
+                            <th>Revenue</th>
+                            <th>Branches</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>School Shirt - Size S</td>
+                            <td>Shirts</td>
+                            <td>245</td>
+                            <td>Rs. 1,22,500</td>
+                            <td>8 branches</td>
+                        </tr>
+                        <tr>
+                            <td>Formal Pants - Size 30</td>
+                            <td>Pants</td>
+                            <td>180</td>
+                            <td>Rs. 1,26,000</td>
+                            <td>7 branches</td>
+                        </tr>
+                        <tr>
+                            <td>School Shoes - Size 7</td>
+                            <td>Shoes</td>
+                            <td>156</td>
+                            <td>Rs. 3,12,000</td>
+                            <td>6 branches</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Purchase Management Section -->
+        <div id="purchase" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Purchase Management</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Pending Orders</h3>
+                        <h2>5</h2>
+                    </div>
+                    <div class="stat-icon orange">📋</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>This Month Purchases</h3>
+                        <h2>Rs. 18.5L</h2>
+                    </div>
+                    <div class="stat-icon blue">💵</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Suppliers</h3>
+                        <h2>15</h2>
+                    </div>
+                    <div class="stat-icon green">🏢</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Pending Receipts</h3>
+                        <h2>3</h2>
+                    </div>
+                    <div class="stat-icon purple">📦</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Purchase Orders</h3>
+                    <button class="btn btn-primary">New Purchase Order</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PO Number</th>
+                            <th>Supplier</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Order Date</th>
+                            <th>Expected Delivery</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#PO-2024-001</td>
+                            <td>Textile Suppliers Ltd.</td>
+                            <td>School Shirt M (200 units)</td>
+                            <td>Rs. 1,00,000</td>
+                            <td>2024-01-10</td>
+                            <td>2024-01-20</td>
+                            <td><span class="badge badge-info">Pending</span></td>
+                        </tr>
+                        <tr>
+                            <td>#PO-2024-002</td>
+                            <td>Garment Manufacturers</td>
+                            <td>Formal Pants 32 (150 units)</td>
+                            <td>Rs. 1,05,000</td>
+                            <td>2024-01-12</td>
+                            <td>2024-01-22</td>
+                            <td><span class="badge badge-info">Pending</span></td>
+                        </tr>
+                        <tr>
+                            <td>#PO-2024-003</td>
+                            <td>Accessories Co.</td>
+                            <td>School Tie Blue (300 units)</td>
+                            <td>Rs. 60,000</td>
+                            <td>2024-01-08</td>
+                            <td>2024-01-18</td>
+                            <td><span class="badge badge-success">Received</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Suppliers (10-20 Suppliers)</h3>
+                    <button class="btn btn-primary">Add Supplier</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Supplier Name</th>
+                            <th>Contact Person</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Items Supplied</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Textile Suppliers Ltd.</td>
+                            <td>Mr. Ali Ahmed</td>
+                            <td>+92-300-1234567</td>
+                            <td>ali@textilesuppliers.com</td>
+                            <td>Shirts, Pants</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Garment Manufacturers</td>
+                            <td>Ms. Sara Khan</td>
+                            <td>+92-321-9876543</td>
+                            <td>sara@garmentmfg.com</td>
+                            <td>Pants, Accessories</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td>Accessories Co.</td>
+                            <td>Mr. Hassan Raza</td>
+                            <td>+92-345-4567890</td>
+                            <td>hassan@accessories.com</td>
+                            <td>Ties, Belts</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div id="reports" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Reports & Analytics</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Inventory Reports</h3>
+                        <h2>12</h2>
+                    </div>
+                    <div class="stat-icon blue">📊</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Sales Reports</h3>
+                        <h2>8</h2>
+                    </div>
+                    <div class="stat-icon green">📈</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Branch Reports</h3>
+                        <h2>8</h2>
+                    </div>
+                    <div class="stat-icon orange">🏪</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Custom Reports</h3>
+                        <h2>5</h2>
+                    </div>
+                    <div class="stat-icon purple">📋</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Available Reports</h3>
+                    <button class="btn btn-primary">Generate Report</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Report Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Last Generated</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Current Stock Levels</td>
+                            <td>Inventory</td>
+                            <td>Stock levels across all branches</td>
+                            <td>2024-01-15 09:00 AM</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>Low Stock Report</td>
+                            <td>Inventory</td>
+                            <td>Items below reorder level</td>
+                            <td>2024-01-15 08:00 AM</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>Daily Sales Summary</td>
+                            <td>Sales</td>
+                            <td>Today's sales across all branches</td>
+                            <td>2024-01-15 10:00 AM</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>Branch-wise Sales</td>
+                            <td>Sales</td>
+                            <td>Sales performance by branch</td>
+                            <td>2024-01-14 06:00 PM</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>Stock Transfer Report</td>
+                            <td>Operational</td>
+                            <td>Inter-branch transfers</td>
+                            <td>2024-01-14 05:00 PM</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>Profit & Loss Report</td>
+                            <td>Financial</td>
+                            <td>Monthly P&L statement</td>
+                            <td>2024-01-01 12:00 AM</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Notifications Section -->
+        <div id="notifications" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Notifications & Alerts</h2>
+            
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Recent Notifications</h3>
+                    <button class="btn btn-primary">Mark All Read</button>
+                </div>
+                <div class="notifications-list">
+                    <div class="notification-item">
+                        <div class="notification-icon-small alert">⚠️</div>
+                        <div class="notification-content">
+                            <h4>Low Stock Alert</h4>
+                            <p>School Shirt - Size M is running low (15 units remaining) at Karachi Main, Lahore Central, and Islamabad Branch</p>
+                            <div class="notification-time">5 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon-small alert">⚠️</div>
+                        <div class="notification-content">
+                            <h4>Low Stock Alert</h4>
+                            <p>Formal Pants - Size 32 is below threshold (22 units) at Faisalabad and Multan branches</p>
+                            <div class="notification-time">15 minutes ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon-small info">ℹ️</div>
+                        <div class="notification-content">
+                            <h4>Daily Inventory Report</h4>
+                            <p>Daily inventory summary report has been generated and sent to all branch managers</p>
+                            <div class="notification-time">1 hour ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon-small success">✅</div>
+                        <div class="notification-content">
+                            <h4>Stock Transfer Completed</h4>
+                            <p>Transfer #TRF-2024-001 from Karachi Main to Lahore Central has been completed successfully</p>
+                            <div class="notification-time">2 hours ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon-small info">📦</div>
+                        <div class="notification-content">
+                            <h4>Purchase Order Received</h4>
+                            <p>Purchase Order #PO-2024-003 from Accessories Co. has been received and inventory updated</p>
+                            <div class="notification-time">3 hours ago</div>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-icon-small alert">⚠️</div>
+                        <div class="notification-content">
+                            <h4>Low Stock Alert</h4>
+                            <p>School Tie - Blue is running low (18 units remaining) at 4 branches</p>
+                            <div class="notification-time">4 hours ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Notification Settings</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Notification Type</th>
+                            <th>Channel</th>
+                            <th>Frequency</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Low Stock Alerts</td>
+                            <td>Email, In-System</td>
+                            <td>Real-time</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>Daily Inventory Report</td>
+                            <td>Email</td>
+                            <td>Daily (9:00 AM)</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>Stock Movement Alerts</td>
+                            <td>In-System</td>
+                            <td>Real-time</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>Weekly Sales Report</td>
+                            <td>Email</td>
+                            <td>Weekly (Monday 9:00 AM)</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- User Management Section -->
+        <div id="users" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">User Management</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Total Users</h3>
+                        <h2>67</h2>
+                    </div>
+                    <div class="stat-icon blue">👥</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Active Users</h3>
+                        <h2>62</h2>
+                    </div>
+                    <div class="stat-icon green">✅</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Roles</h3>
+                        <h2>5</h2>
+                    </div>
+                    <div class="stat-icon orange">🔐</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Online Now</h3>
+                        <h2>12</h2>
+                    </div>
+                    <div class="stat-icon purple">🟢</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Users (50-100 Users)</h3>
+                    <button class="btn btn-primary">Add User</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Branch</th>
+                            <th>Last Login</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>UG001</td>
+                            <td>Admin Manager</td>
+                            <td>admin@uniformgarments.com</td>
+                            <td>Super Admin</td>
+                            <td>Head Office</td>
+                            <td>2024-01-15 10:30 AM</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>UG002</td>
+                            <td>Ahmed Khan</td>
+                            <td>ahmed.khan@uniformgarments.com</td>
+                            <td>Head Office Manager</td>
+                            <td>Head Office</td>
+                            <td>2024-01-15 09:15 AM</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>UG003</td>
+                            <td>Sara Ali</td>
+                            <td>sara.ali@uniformgarments.com</td>
+                            <td>Branch Manager</td>
+                            <td>Karachi Main</td>
+                            <td>2024-01-15 08:00 AM</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>UG004</td>
+                            <td>Hassan Raza</td>
+                            <td>hassan.raza@uniformgarments.com</td>
+                            <td>Branch Manager</td>
+                            <td>Lahore Central</td>
+                            <td>2024-01-15 07:45 AM</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>UG005</td>
+                            <td>Fatima Khan</td>
+                            <td>fatima.khan@uniformgarments.com</td>
+                            <td>Sales Staff</td>
+                            <td>Islamabad Branch</td>
+                            <td>2024-01-14 06:30 PM</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>User Roles & Permissions</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Role</th>
+                            <th>Access Level</th>
+                            <th>Key Permissions</th>
+                            <th>Users</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Super Admin</td>
+                            <td>Full Access</td>
+                            <td>All modules, user management, system configuration</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td>Head Office Manager</td>
+                            <td>Centralized Management</td>
+                            <td>View all branches, reports, master data management</td>
+                            <td>3</td>
+                        </tr>
+                        <tr>
+                            <td>Branch Manager</td>
+                            <td>Branch Level</td>
+                            <td>Manage own branch, inventory, sales, staff</td>
+                            <td>8</td>
+                        </tr>
+                        <tr>
+                            <td>Sales Staff</td>
+                            <td>Limited</td>
+                            <td>POS, view inventory, sales entry</td>
+                            <td>42</td>
+                        </tr>
+                        <tr>
+                            <td>Inventory Staff</td>
+                            <td>Inventory Focus</td>
+                            <td>Stock management, transfers, adjustments</td>
+                            <td>12</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stock Transfers Section -->
+        <div id="stock-transfers" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Stock Transfers</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Pending Transfers</h3>
+                        <h2>3</h2>
+                    </div>
+                    <div class="stat-icon orange">📋</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Completed This Month</h3>
+                        <h2>24</h2>
+                    </div>
+                    <div class="stat-icon green">✅</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>In Transit</h3>
+                        <h2>2</h2>
+                    </div>
+                    <div class="stat-icon blue">🚚</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Total Items Transferred</h3>
+                        <h2>1,245</h2>
+                    </div>
+                    <div class="stat-icon purple">📦</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Inter-Branch Stock Transfers</h3>
+                    <button class="btn btn-primary">New Transfer</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Transfer ID</th>
+                            <th>From Branch</th>
+                            <th>To Branch</th>
+                            <th>Items</th>
+                            <th>Quantity</th>
+                            <th>Requested Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#TRF-2024-001</td>
+                            <td>Karachi Main</td>
+                            <td>Lahore Central</td>
+                            <td>School Shirt M</td>
+                            <td>50 units</td>
+                            <td>2024-01-15</td>
+                            <td><span class="badge badge-success">Completed</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>#TRF-2024-002</td>
+                            <td>Islamabad Branch</td>
+                            <td>Rawalpindi Branch</td>
+                            <td>Formal Pants 32</td>
+                            <td>30 units</td>
+                            <td>2024-01-14</td>
+                            <td><span class="badge badge-info">In Transit</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Track</button></td>
+                        </tr>
+                        <tr>
+                            <td>#TRF-2024-003</td>
+                            <td>Faisalabad Branch</td>
+                            <td>Multan Branch</td>
+                            <td>School Tie Blue</td>
+                            <td>25 units</td>
+                            <td>2024-01-13</td>
+                            <td><span class="badge badge-warning">Pending</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Approve</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stock Adjustments Section -->
+        <div id="stock-adjustments" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Stock Adjustments</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>This Month Adjustments</h3>
+                        <h2>18</h2>
+                    </div>
+                    <div class="stat-icon blue">📝</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Damaged Items</h3>
+                        <h2>5</h2>
+                    </div>
+                    <div class="stat-icon orange">⚠️</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Returns</h3>
+                        <h2>12</h2>
+                    </div>
+                    <div class="stat-icon green">↩️</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Corrections</h3>
+                        <h2>8</h2>
+                    </div>
+                    <div class="stat-icon purple">✏️</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Stock Adjustments History</h3>
+                    <button class="btn btn-primary">New Adjustment</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Adjustment ID</th>
+                            <th>Branch</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Quantity</th>
+                            <th>Reason</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#ADJ-2024-001</td>
+                            <td>Karachi Main</td>
+                            <td>School Shirt M</td>
+                            <td>Damage</td>
+                            <td>-5 units</td>
+                            <td>Damaged during handling</td>
+                            <td>2024-01-15</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>#ADJ-2024-002</td>
+                            <td>Lahore Central</td>
+                            <td>Formal Pants 30</td>
+                            <td>Return</td>
+                            <td>+3 units</td>
+                            <td>Customer return</td>
+                            <td>2024-01-14</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>#ADJ-2024-003</td>
+                            <td>Islamabad Branch</td>
+                            <td>School Tie Blue</td>
+                            <td>Correction</td>
+                            <td>+2 units</td>
+                            <td>Stock count correction</td>
+                            <td>2024-01-13</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Category Management Section -->
+        <div id="categories" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Category Management</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Total Categories</h3>
+                        <h2>12</h2>
+                    </div>
+                    <div class="stat-icon blue">📁</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Items per Category</h3>
+                        <h2>20+</h2>
+                    </div>
+                    <div class="stat-icon green">📦</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Product Categories</h3>
+                    <button class="btn btn-primary">Add Category</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category ID</th>
+                            <th>Category Name</th>
+                            <th>Description</th>
+                            <th>Total Items</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>CAT-001</td>
+                            <td>Shirts</td>
+                            <td>School and formal shirts</td>
+                            <td>45</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>CAT-002</td>
+                            <td>Pants</td>
+                            <td>Formal and casual pants</td>
+                            <td>38</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>CAT-003</td>
+                            <td>Accessories</td>
+                            <td>Ties, belts, badges</td>
+                            <td>52</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>CAT-004</td>
+                            <td>Shoes</td>
+                            <td>School and formal shoes</td>
+                            <td>28</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Audit Trail Section -->
+        <div id="audit-trail" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">Audit Trail</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Today's Activities</h3>
+                        <h2>247</h2>
+                    </div>
+                    <div class="stat-icon blue">📋</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>This Week</h3>
+                        <h2>1,856</h2>
+                    </div>
+                    <div class="stat-icon green">📊</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>System Changes</h3>
+                        <h2>12</h2>
+                    </div>
+                    <div class="stat-icon orange">⚙️</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>User Actions</h3>
+                        <h2>2,091</h2>
+                    </div>
+                    <div class="stat-icon purple">👤</div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Activity Log</h3>
+                    <button class="btn btn-primary">Export Log</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Module</th>
+                            <th>Details</th>
+                            <th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2024-01-15 10:30 AM</td>
+                            <td>Admin Manager</td>
+                            <td>Stock Adjustment</td>
+                            <td>Inventory</td>
+                            <td>Adjusted School Shirt M (-5 units)</td>
+                            <td>192.168.1.100</td>
+                        </tr>
+                        <tr>
+                            <td>2024-01-15 10:25 AM</td>
+                            <td>Sara Ali</td>
+                            <td>Stock Transfer</td>
+                            <td>Inventory</td>
+                            <td>Created transfer #TRF-2024-001</td>
+                            <td>192.168.1.105</td>
+                        </tr>
+                        <tr>
+                            <td>2024-01-15 10:20 AM</td>
+                            <td>Ahmed Khan</td>
+                            <td>User Created</td>
+                            <td>User Management</td>
+                            <td>Created new user: Fatima Khan</td>
+                            <td>192.168.1.101</td>
+                        </tr>
+                        <tr>
+                            <td>2024-01-15 10:15 AM</td>
+                            <td>Hassan Raza</td>
+                            <td>Sale Completed</td>
+                            <td>Sales & POS</td>
+                            <td>Transaction #TXN-2024-002 (Rs. 7,200)</td>
+                            <td>192.168.1.108</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="settings" class="content-section">
+            <h2 style="margin-bottom: 25px; color: #2c3e50;">System Settings</h2>
+            
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>General Settings</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Current Value</th>
+                            <th>Description</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Low Stock Threshold</td>
+                            <td>50 units</td>
+                            <td>Minimum stock level for alerts</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>Auto Backup</td>
+                            <td>Daily at 2:00 AM</td>
+                            <td>Automatic database backup schedule</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>Session Timeout</td>
+                            <td>30 minutes</td>
+                            <td>Automatic logout after inactivity</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>Email Notifications</td>
+                            <td>Enabled</td>
+                            <td>Send email notifications for alerts</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>Currency</td>
+                            <td>PKR (Rs.)</td>
+                            <td>Default currency for transactions</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Security Settings</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Two-Factor Authentication</td>
+                            <td><span class="badge badge-success">Enabled</span></td>
+                            <td>Require 2FA for admin accounts</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Configure</button></td>
+                        </tr>
+                        <tr>
+                            <td>Password Policy</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>Minimum 8 characters, mixed case</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Edit</button></td>
+                        </tr>
+                        <tr>
+                            <td>SSL/TLS Encryption</td>
+                            <td><span class="badge badge-success">Enabled</span></td>
+                            <td>Data encryption in transit</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>Access Logs</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                            <td>Track all login attempts</td>
+                            <td><button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">View Logs</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart instances
+        let salesChart = null;
+        let branchChart = null;
+
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all menu items
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked menu item
+            event.target.closest('.menu-item').classList.add('active');
+
+            // Initialize charts when dashboard is shown
+            if (sectionId === 'dashboard') {
+                setTimeout(() => {
+                    initCharts();
+                }, 100);
+            }
+        }
+
+        function initCharts() {
+            // Sales Trend Chart
+            const salesCtx = document.getElementById('salesChart');
+            if (salesCtx && !salesChart) {
+                salesChart = new Chart(salesCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [{
+                            label: 'Sales (PKR)',
+                            data: [85000, 92000, 78000, 105000, 98000, 112000, 124500],
+                            borderColor: 'rgb(52, 152, 219)',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: 'rgb(52, 152, 219)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 12,
+                                        weight: 'bold'
+                                    },
+                                    color: '#2c3e50'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 12
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Rs. ' + context.parsed.y.toLocaleString('en-PK');
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rs. ' + (value / 1000) + 'K';
+                                    },
+                                    font: {
+                                        size: 11
+                                    },
+                                    color: '#7f8c8d'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 11
+                                    },
+                                    color: '#7f8c8d'
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Branch Performance Chart
+            const branchCtx = document.getElementById('branchChart');
+            if (branchCtx && !branchChart) {
+                branchChart = new Chart(branchCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Karachi', 'Lahore', 'Islamabad', 'Faisalabad', 'Multan'],
+                        datasets: [{
+                            label: 'Sales (PKR)',
+                            data: [35000, 28000, 22000, 18000, 15000],
+                            backgroundColor: [
+                                'rgba(52, 152, 219, 0.8)',
+                                'rgba(46, 204, 113, 0.8)',
+                                'rgba(241, 196, 15, 0.8)',
+                                'rgba(231, 76, 60, 0.8)',
+                                'rgba(155, 89, 182, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgb(52, 152, 219)',
+                                'rgb(46, 204, 113)',
+                                'rgb(241, 196, 15)',
+                                'rgb(231, 76, 60)',
+                                'rgb(155, 89, 182)'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 12,
+                                        weight: 'bold'
+                                    },
+                                    color: '#2c3e50'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 12
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Rs. ' + context.parsed.y.toLocaleString('en-PK');
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rs. ' + (value / 1000) + 'K';
+                                    },
+                                    font: {
+                                        size: 11
+                                    },
+                                    color: '#7f8c8d'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 11
+                                    },
+                                    color: '#7f8c8d'
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Notification Dropdown Functions
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.classList.toggle('active');
+            event.stopPropagation();
+        }
+
+        function markAllRead() {
+            const unreadItems = document.querySelectorAll('.notification-dropdown-item.unread');
+            unreadItems.forEach(item => {
+                item.classList.remove('unread');
+            });
+            const badge = document.querySelector('.notification-badge');
+            if (badge) {
+                badge.textContent = '0';
+                badge.style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('notificationDropdown');
+            const icon = document.querySelector('.notification-icon');
+            if (dropdown && !dropdown.contains(event.target) && !icon.contains(event.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+        // Initialize charts on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                initCharts();
+            }, 500);
+        });
+
+        // Simulate real-time updates
+        setInterval(function() {
+            // Update notification badge
+            const badge = document.querySelector('.notification-badge');
+            if (badge) {
+                const count = parseInt(badge.textContent);
+                if (count < 10) {
+                    badge.textContent = count + 1;
+                }
+            }
+        }, 30000); // Every 30 seconds
+    </script>
+</body>
+</html>
